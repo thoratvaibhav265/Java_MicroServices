@@ -1,0 +1,337 @@
+{
+  "info": {
+    "name": "UserApp API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Run in order against a disposable UserApp instance. The create request inserts a synthetic user with a unique email on each run."
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8080"
+    },
+    {
+      "key": "userId",
+      "value": ""
+    },
+    {
+      "key": "testEmail",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Create user",
+      "request": {
+        "method": "POST",
+        "url": {
+          "raw": "{{baseUrl}}/users",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "users"
+          ]
+        },
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Postman Test User\",\n  \"email\": \"{{testEmail}}\",\n  \"about\": \"Created by the UserApp API collection\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.unset(\"userId\");",
+              "const suffix = pm.variables.replaceIn(\"{{$guid}}\");",
+              "pm.collectionVariables.set(\"testEmail\", `postman-${suffix}@example.com`);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Returns HTTP 201\", () => pm.response.to.have.status(201));",
+              "pm.test(\"Returns JSON\", () => pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\"));",
+              "pm.test(\"Assigns a positive user ID\", () => {",
+              "    const userId = pm.response.json().userId;",
+              "    pm.expect(Number.isSafeInteger(userId) && userId > 0).to.equal(true);",
+              "    pm.collectionVariables.set(\"userId\", String(userId));",
+              "});",
+              "pm.test(\"Returns submitted fields\", () => {",
+              "    pm.expect(pm.response.json()).to.include({",
+              "        name: \"Postman Test User\", email: pm.collectionVariables.get(\"testEmail\"),",
+              "        about: \"Created by the UserApp API collection\"",
+              "    });",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get created user",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/users/{{userId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "users",
+            "{{userId}}"
+          ]
+        },
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ]
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Returns HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Returns JSON\", () => pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\"));",
+              "pm.test(\"Reads back the created user\", () => {",
+              "    pm.expect(pm.response.json()).to.include({",
+              "        userId: Number(pm.collectionVariables.get(\"userId\")),",
+              "        name: \"Postman Test User\", email: pm.collectionVariables.get(\"testEmail\"),",
+              "        about: \"Created by the UserApp API collection\"",
+              "    });",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "List users",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/users",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "users"
+          ]
+        },
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ]
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Returns HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Returns JSON\", () => pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\"));",
+              "pm.test(\"List contains the created user\", () => {",
+              "    const users = pm.response.json();",
+              "    pm.expect(users).to.be.an(\"array\");",
+              "    const user = users.find(entry => entry.userId === Number(pm.collectionVariables.get(\"userId\")));",
+              "    pm.expect(user).to.include({email: pm.collectionVariables.get(\"testEmail\")});",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get nonexistent user",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/users/-1",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "users",
+            "-1"
+          ]
+        },
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ]
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Returns HTTP 404\", () => pm.response.to.have.status(404));",
+              "pm.test(\"Returns JSON\", () => pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\"));",
+              "pm.test(\"Returns the missing-user error\", () => {",
+              "    pm.expect(pm.response.json()).to.include({",
+              "        success: false, status: \"404 NOT_FOUND\", message: \"User not available with ID:-1\"",
+              "    });",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reject invalid email",
+      "request": {
+        "method": "POST",
+        "url": {
+          "raw": "{{baseUrl}}/users",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "users"
+          ]
+        },
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Postman Test User\",\n  \"email\": \"invalid-email\",\n  \"about\": \"Created by the UserApp API collection\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Returns HTTP 400\", () => pm.response.to.have.status(400));",
+              "pm.test(\"Returns JSON\", () => pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\"));",
+              "pm.test(\"Explains the invalid email\", () => pm.expect(pm.response.json().message).to.equal(\"Email is incorrect\"));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reject blank name",
+      "request": {
+        "method": "POST",
+        "url": {
+          "raw": "{{baseUrl}}/users",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "users"
+          ]
+        },
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \" \",\n  \"email\": \"{{testEmail}}\",\n  \"about\": \"Created by the UserApp API collection\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Returns HTTP 400\", () => pm.response.to.have.status(400));",
+              "pm.test(\"Returns JSON\", () => pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\"));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reject malformed user ID",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/users/not-a-number",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "users",
+            "not-a-number"
+          ]
+        },
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ]
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Returns HTTP 400\", () => pm.response.to.have.status(400));",
+              "pm.test(\"Returns JSON\", () => pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\"));"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
