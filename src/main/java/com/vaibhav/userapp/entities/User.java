@@ -34,7 +34,7 @@ public class User {
     private String about;
 
     @Transient
-    private List<Rating> ratings;
+    private List<Rating> ratings = List.of();
 
     public User() {
     }
@@ -80,6 +80,11 @@ public class User {
 
     public void setAbout(String about) {
         this.about = about;
+    }
+
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    public List<Rating> getRatings() {
+        return ratings;
     }
 
     public static class UserBuilder {

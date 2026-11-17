@@ -67,7 +67,8 @@ class UserApiIntegrationTests {
                 .andExpect(jsonPath("$.userId").value(is(user.getUserId()), Long.class))
                 .andExpect(jsonPath("$.name").value("Ada"))
                 .andExpect(jsonPath("$.email").value("ada@example.com"))
-                .andExpect(jsonPath("$.about").value("Engineer"));
+                .andExpect(jsonPath("$.about").value("Engineer"))
+                .andExpect(jsonPath("$.ratings.length()").value(0));
     }
 
     @Test
